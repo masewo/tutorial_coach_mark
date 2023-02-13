@@ -383,8 +383,8 @@ class AnimatedPulseFocusLightState extends AnimatedFocusLightState {
                       },
                       child: Container(
                         color: Colors.transparent,
-                        width: width,
-                        height: height,
+                        width: max(width, 0),
+                        height: max(height, 0),
                       ),
                     ),
                   )
