@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:tutorial_coach_mark/src/target/target_content.dart';
 import 'package:tutorial_coach_mark/src/target/target_focus.dart';
+import 'package:tutorial_coach_mark/src/target/target_position.dart';
 import 'package:tutorial_coach_mark/src/util.dart';
 import 'package:tutorial_coach_mark/src/widgets/animated_focus_light.dart';
 
@@ -21,7 +22,7 @@ class TutorialCoachMarkWidget extends StatefulWidget {
     this.colorShadow = Colors.black,
     this.opacityShadow = 0.8,
     this.textStyleSkip = const TextStyle(color: Colors.white),
-    this.hideSkip,
+    this.hideSkip = false,
     this.focusAnimationDuration,
     this.unFocusAnimationDuration,
     this.pulseAnimationDuration,
@@ -29,6 +30,7 @@ class TutorialCoachMarkWidget extends StatefulWidget {
     this.pulseEnable = true,
     this.skipWidget,
     this.rootOverlay = false,
+    this.showSkipInLastTarget = false,
   })  : assert(targets.length > 0),
         super(key: key);
 
@@ -45,7 +47,7 @@ class TutorialCoachMarkWidget extends StatefulWidget {
   final AlignmentGeometry alignSkip;
   final String textSkip;
   final TextStyle textStyleSkip;
-  final bool? hideSkip;
+  final bool hideSkip;
   final Duration? focusAnimationDuration;
   final Duration? unFocusAnimationDuration;
   final Duration? pulseAnimationDuration;
@@ -53,6 +55,7 @@ class TutorialCoachMarkWidget extends StatefulWidget {
   final bool pulseEnable;
   final Widget? skipWidget;
   final bool rootOverlay;
+  final bool showSkipInLastTarget;
 
   @override
   TutorialCoachMarkWidgetState createState() => TutorialCoachMarkWidgetState();
@@ -123,10 +126,17 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
 
     List<Widget> children = <Widget>[];
 
-    final target = getTargetCurrent(
-      currentTarget!,
-      rootOverlay: widget.rootOverlay,
-    );
+    TargetPosition? target;
+    try {
+      target = getTargetCurrent(
+        currentTarget!,
+        rootOverlay: widget.rootOverlay,
+      );
+    } on NotFoundTargetException catch (e, s) {
+      debugPrint(e.toString());
+      debugPrintStack(stackTrace: s);
+    }
+
     if (target == null) {
       return const SizedBox.shrink();
     }
@@ -181,14 +191,14 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
           {
             weight = positioned.dx - haloWidth;
             left = 0;
-            top = positioned.dy - target.size.height / 2 - haloHeight;
+            top = positioned.dy - target!.size.height / 2 - haloHeight;
             bottom = null;
           }
           break;
         case ContentAlign.right:
           {
             left = positioned.dx + haloWidth;
-            top = positioned.dy - target.size.height / 2 - haloHeight;
+            top = positioned.dy - target!.size.height / 2 - haloHeight;
             bottom = null;
             weight = MediaQuery.of(context).size.width - left!;
           }
@@ -226,9 +236,17 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
   }
 
   Widget _buildSkip() {
-    if (widget.hideSkip!) {
+    bool isLastTarget = false;
+
+    if (currentTarget != null) {
+      isLastTarget =
+          widget.targets.indexOf(currentTarget!) == widget.targets.length - 1;
+    }
+
+    if (widget.hideSkip || (isLastTarget && !widget.showSkipInLastTarget)) {
       return const SizedBox.shrink();
     }
+
     return Align(
       alignment: currentTarget?.alignSkip ?? widget.alignSkip,
       child: SafeArea(
