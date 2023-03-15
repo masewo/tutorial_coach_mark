@@ -39,10 +39,7 @@ TargetPosition? getTargetCurrent(
 
       return TargetPosition(size, offset);
     } catch (e) {
-      // ignore: avoid_print
-      print(
-          "TutorialCoachMark (ERROR): It was not possible to obtain target position.");
-      return null;
+      throw NotFoundTargetException();
     }
   } else {
     return target.targetPosition;
@@ -62,4 +59,9 @@ extension StateExt on State {
       setState(call);
     }
   }
+}
+
+class NotFoundTargetException extends FormatException {
+  NotFoundTargetException()
+      : super('It was not possible to obtain target position.');
 }
