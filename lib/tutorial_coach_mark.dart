@@ -57,7 +57,7 @@ class TutorialCoachMark {
     this.pulseAnimationDuration = const Duration(milliseconds: 500),
     this.pulseEnable = true,
     this.skipWidget,
-    this.showSkipInLastTarget = false,
+    this.showSkipInLastTarget = true,
   }) : assert(opacityShadow >= 0 && opacityShadow <= 1);
 
   OverlayEntry _buildOverlay({bool rootOverlay = false}) {
@@ -94,7 +94,7 @@ class TutorialCoachMark {
     Future.delayed(Duration.zero, () {
       if (_overlayEntry == null) {
         _overlayEntry = _buildOverlay(rootOverlay: rootOverlay);
-        Overlay.of(context, rootOverlay: rootOverlay).insert(_overlayEntry!);
+        Overlay.of(context, rootOverlay: rootOverlay)?.insert(_overlayEntry!);
         BackButtonInterceptor.add(_backButtonInterceptor);
       }
     });
