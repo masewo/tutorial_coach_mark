@@ -24,6 +24,7 @@ class TutorialCoachMarkWidget extends StatefulWidget {
     this.opacityShadow = 0.8,
     this.textStyleSkip = const TextStyle(color: Colors.white),
     this.hideSkip = false,
+    this.useSafeArea = true,
     this.focusAnimationDuration,
     this.unFocusAnimationDuration,
     this.pulseAnimationDuration,
@@ -33,6 +34,7 @@ class TutorialCoachMarkWidget extends StatefulWidget {
     this.rootOverlay = false,
     this.showSkipInLastTarget = false,
     this.imageFilter,
+    this.initialFocus = 0,
   })  : assert(targets.length > 0),
         super(key: key);
 
@@ -50,6 +52,7 @@ class TutorialCoachMarkWidget extends StatefulWidget {
   final String textSkip;
   final TextStyle textStyleSkip;
   final bool hideSkip;
+  final bool useSafeArea;
   final Duration? focusAnimationDuration;
   final Duration? unFocusAnimationDuration;
   final Duration? pulseAnimationDuration;
@@ -59,6 +62,7 @@ class TutorialCoachMarkWidget extends StatefulWidget {
   final bool rootOverlay;
   final bool showSkipInLastTarget;
   final ImageFilter? imageFilter;
+  final int initialFocus;
 
   @override
   TutorialCoachMarkWidgetState createState() => TutorialCoachMarkWidgetState();
@@ -78,6 +82,7 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
         children: <Widget>[
           AnimatedFocusLight(
             key: _focusLightKey,
+            initialFocus: widget.initialFocus,
             targets: widget.targets,
             finish: widget.finish,
             paddingFocus: widget.paddingFocus,
@@ -251,28 +256,29 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
       return const SizedBox.shrink();
     }
 
-    return Align(
-      alignment: currentTarget?.alignSkip ?? widget.alignSkip,
-      child: SafeArea(
-        child: AnimatedOpacity(
-          opacity: showContent ? 1 : 0,
-          duration: const Duration(milliseconds: 300),
-          child: InkWell(
-            onTap: skip,
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: IgnorePointer(
-                ignoringSemantics: false,
-                child: widget.skipWidget ??
-                    Text(
-                      widget.textSkip,
-                      style: widget.textStyleSkip,
-                    ),
-              ),
-            ),
+    Widget animatedWidget = AnimatedOpacity(
+      opacity: showContent ? 1 : 0,
+      duration: const Duration(milliseconds: 300),
+      child: InkWell(
+        onTap: skip,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: IgnorePointer(
+            child: widget.skipWidget ??
+                Text(
+                  widget.textSkip,
+                  style: widget.textStyleSkip,
+                ),
           ),
         ),
       ),
+    );
+
+    return Align(
+      alignment: currentTarget?.alignSkip ?? widget.alignSkip,
+      child: (widget.useSafeArea)
+          ? SafeArea(child: animatedWidget)
+          : animatedWidget,
     );
   }
 
@@ -284,4 +290,6 @@ class TutorialCoachMarkWidgetState extends State<TutorialCoachMarkWidget>
 
   @override
   void previous() => _focusLightKey.currentState?.previous();
+
+  void goTo(int index) => _focusLightKey.currentState?.goTo(index);
 }
