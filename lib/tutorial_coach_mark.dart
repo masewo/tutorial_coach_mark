@@ -23,6 +23,7 @@ class TutorialCoachMark {
   final FutureOr<void> Function(TargetFocus)? onClickOverlay;
   final Function()? onFinish;
   final double paddingFocus;
+
   // if onSkip return false, the overlay will not be dismissed and call `next`
   final bool Function()? onSkip;
   final AlignmentGeometry alignSkip;
@@ -40,6 +41,7 @@ class TutorialCoachMark {
   final Widget? skipWidget;
   final bool showSkipInLastTarget;
   final ImageFilter? imageFilter;
+  final String? backgroundSemanticLabel;
   final int initialFocus;
 
   OverlayEntry? _overlayEntry;
@@ -67,6 +69,7 @@ class TutorialCoachMark {
     this.showSkipInLastTarget = true,
     this.imageFilter,
     this.initialFocus = 0,
+    this.backgroundSemanticLabel,
   }) : assert(opacityShadow >= 0 && opacityShadow <= 1);
 
   OverlayEntry _buildOverlay({bool rootOverlay = false}) {
@@ -97,6 +100,7 @@ class TutorialCoachMark {
           showSkipInLastTarget: showSkipInLastTarget,
           imageFilter: imageFilter,
           initialFocus: initialFocus,
+          backgroundSemanticLabel: backgroundSemanticLabel,
         );
       },
     );
