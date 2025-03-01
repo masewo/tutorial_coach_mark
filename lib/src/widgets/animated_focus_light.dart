@@ -12,27 +12,6 @@ import 'package:tutorial_coach_mark/src/target/target_position.dart';
 import 'package:tutorial_coach_mark/src/util.dart';
 
 class AnimatedFocusLight extends StatefulWidget {
-  final List<TargetFocus> targets;
-  final Function(TargetFocus)? focus;
-  final FutureOr Function(TargetFocus)? clickTarget;
-  final FutureOr Function(TargetFocus, TapDownDetails)?
-      clickTargetWithTapPosition;
-  final FutureOr Function(TargetFocus)? clickOverlay;
-  final Function? removeFocus;
-  final Function()? finish;
-  final double paddingFocus;
-  final Color colorShadow;
-  final double opacityShadow;
-  final Duration? focusAnimationDuration;
-  final Duration? unFocusAnimationDuration;
-  final Duration? pulseAnimationDuration;
-  final Tween<double>? pulseVariation;
-  final bool pulseEnable;
-  final bool rootOverlay;
-  final ImageFilter? imageFilter;
-  final int initialFocus;
-  final String? backgroundSemanticLabel;
-
   const AnimatedFocusLight({
     Key? key,
     required this.targets,
@@ -57,6 +36,27 @@ class AnimatedFocusLight extends StatefulWidget {
   })  : assert(targets.length > 0),
         super(key: key);
 
+  final List<TargetFocus> targets;
+  final Function(TargetFocus)? focus;
+  final FutureOr Function(TargetFocus)? clickTarget;
+  final FutureOr Function(TargetFocus, TapDownDetails)?
+      clickTargetWithTapPosition;
+  final FutureOr Function(TargetFocus)? clickOverlay;
+  final Function? removeFocus;
+  final Function()? finish;
+  final double paddingFocus;
+  final Color colorShadow;
+  final double opacityShadow;
+  final Duration? focusAnimationDuration;
+  final Duration? unFocusAnimationDuration;
+  final Duration? pulseAnimationDuration;
+  final Tween<double>? pulseVariation;
+  final bool pulseEnable;
+  final bool rootOverlay;
+  final ImageFilter? imageFilter;
+  final int initialFocus;
+  final String? backgroundSemanticLabel;
+
   @override
   // ignore: no_logic_in_create_state
   AnimatedFocusLightState createState() => pulseEnable
@@ -67,21 +67,38 @@ class AnimatedFocusLight extends StatefulWidget {
 abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
     with TickerProviderStateMixin {
   final borderRadiusDefault = 10.0;
-  final defaultFocusAnimationDuration = const Duration(milliseconds: 600);
+  final defaultFocusAnimationDuration = Durations.long4;
   late AnimationController _controller;
   late CurvedAnimation _curvedAnimation;
 
   late TargetFocus _targetFocus;
-  Offset _positioned = const Offset(0.0, 0.0);
+  Offset _positioned = Offset.zero;
   TargetPosition? _targetPosition;
 
   double _sizeCircle = 100;
   int _currentFocus = 0;
   double _progressAnimated = 0;
   int nextIndex = 0;
+  bool _isAnimating = true;
 
-  Future _revertAnimation();
+  Future<void> _revertAnimation() async {
+    _isAnimating = true;
+    _controller.duration = unFocusDuration;
+  }
+
   void _listener(AnimationStatus status);
+
+  Duration get focusDuration =>
+      _targetFocus.focusAnimationDuration ??
+      widget.focusAnimationDuration ??
+      defaultFocusAnimationDuration;
+
+  Duration get unFocusDuration =>
+      _targetFocus.unFocusAnimationDuration ??
+      widget.unFocusAnimationDuration ??
+      _targetFocus.focusAnimationDuration ??
+      widget.focusAnimationDuration ??
+      defaultFocusAnimationDuration;
 
   @override
   void initState() {
@@ -90,9 +107,7 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
     _targetFocus = widget.targets[_currentFocus];
     _controller = AnimationController(
       vsync: this,
-      duration: _targetFocus.focusAnimationDuration ??
-          widget.focusAnimationDuration ??
-          defaultFocusAnimationDuration,
+      duration: focusDuration,
     )..addStatusListener(_listener);
 
     _curvedAnimation = CurvedAnimation(
@@ -112,11 +127,13 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
   void next() => _tapHandler();
 
   void previous() {
+    if (_isAnimating) return;
     nextIndex--;
     _revertAnimation();
   }
 
   void goTo(int index) {
+    if (_isAnimating) return;
     nextIndex = index;
     _revertAnimation();
   }
@@ -125,6 +142,7 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
     bool targetTap = false,
     bool overlayTap = false,
   }) async {
+    if (_isAnimating) return;
     nextIndex++;
     if (targetTap) {
       await widget.clickTarget?.call(_targetFocus);
@@ -136,16 +154,15 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
   }
 
   Future _tapHandlerForPosition(TapDownDetails tapDetails) async {
+    if (_isAnimating) return;
     await widget.clickTargetWithTapPosition?.call(_targetFocus, tapDetails);
   }
 
-  void _runFocus() {
+  Future<void> _runFocus() async {
     if (_currentFocus < 0) return;
     _targetFocus = widget.targets[_currentFocus];
 
-    _controller.duration = _targetFocus.focusAnimationDuration ??
-        widget.focusAnimationDuration ??
-        defaultFocusAnimationDuration;
+    _controller.duration = focusDuration;
 
     TargetPosition? targetPosition;
     try {
@@ -178,12 +195,8 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
       }
     });
 
-    _controller.forward();
-    _controller.duration = _targetFocus.unFocusAnimationDuration ??
-        widget.unFocusAnimationDuration ??
-        _targetFocus.focusAnimationDuration ??
-        widget.focusAnimationDuration ??
-        defaultFocusAnimationDuration;
+    await _controller.forward();
+    _isAnimating = false;
   }
 
   void _goToFocus(int index) {
@@ -274,6 +287,11 @@ abstract class AnimatedFocusLightState extends State<AnimatedFocusLight>
         : _targetFocus.radius ?? borderRadiusDefault;
     return BorderRadius.circular(radius);
   }
+
+  void _onTargetTap() {
+    if (!_targetFocus.enableTargetTab) return;
+    _tapHandler(targetTap: true);
+  }
 }
 
 class AnimatedStaticFocusLightState extends AnimatedFocusLightState {
@@ -312,11 +330,7 @@ class AnimatedStaticFocusLightState extends AnimatedFocusLightState {
                   child: InkWell(
                     borderRadius: _betBorderRadiusTarget(),
                     onTapDown: _tapHandlerForPosition,
-                    onTap: _targetFocus.enableTargetTab
-                        ? () => _tapHandler(targetTap: true)
-
-                        /// Essential for collecting [TapDownDetails]. Do not make [null]
-                        : () {},
+                    onTap: _onTargetTap,
                     child: Container(
                       color: Colors.transparent,
                       width: width,
@@ -333,7 +347,8 @@ class AnimatedStaticFocusLightState extends AnimatedFocusLightState {
   }
 
   @override
-  Future _revertAnimation() {
+  Future<void> _revertAnimation() async {
+    await super._revertAnimation();
     return _controller.reverse();
   }
 
@@ -414,11 +429,7 @@ class AnimatedPulseFocusLightState extends AnimatedFocusLightState {
                       top: top,
                       child: InkWell(
                         borderRadius: _betBorderRadiusTarget(),
-                        onTap: _targetFocus.enableTargetTab
-                            ? () => _tapHandler(targetTap: true)
-
-                            /// Essential for collecting [TapDownDetails]. Do not make [null]
-                            : () {},
+                        onTap: _onTargetTap,
                         onTapDown: _tapHandlerForPosition,
                         child: Container(
                           color: Colors.transparent,
@@ -438,22 +449,20 @@ class AnimatedPulseFocusLightState extends AnimatedFocusLightState {
   }
 
   @override
-  void _runFocus() {
+  Future<void> _runFocus() {
     _tweenPulse = _createTweenAnimation(
       _targetFocus.pulseVariation ??
           widget.pulseVariation ??
           defaultPulseVariation,
     );
     _finishFocus = false;
-    super._runFocus();
+    return super._runFocus();
   }
 
   @override
-  Future _revertAnimation() {
-    safeSetState(() {
-      _initReverse = true;
-    });
-
+  Future<void> _revertAnimation() async {
+    await super._revertAnimation();
+    _initReverse = true;
     return _controllerPulse.reverse(from: _controllerPulse.value);
   }
 
@@ -473,10 +482,8 @@ class AnimatedPulseFocusLightState extends AnimatedFocusLightState {
       _controllerPulse.forward();
     }
     if (status == AnimationStatus.dismissed) {
-      safeSetState(() {
-        _finishFocus = false;
-        _initReverse = false;
-      });
+      _finishFocus = false;
+      _initReverse = false;
       _goToFocus(nextIndex);
     }
 
